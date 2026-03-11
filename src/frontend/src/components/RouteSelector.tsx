@@ -109,20 +109,15 @@ const RouteSelector: React.FC<RouteSelectorProps> = ({
       >
         <div className="flex items-center gap-2.5">
           <div
-            className="flex items-center justify-center rounded-xl overflow-hidden"
+            className="flex items-center justify-center rounded-xl"
             style={{
               width: 36,
               height: 36,
-              background: "oklch(1 0 0 / 0.95)",
-              border: "2px solid oklch(0.88 0.2 90 / 0.7)",
+              background: "oklch(0.88 0.2 90)",
               boxShadow: "0 2px 8px oklch(0.88 0.2 90 / 0.5)",
             }}
           >
-            <img
-              src="/assets/uploads/images-1-1.png"
-              alt="KIIT Logo"
-              style={{ width: 28, height: 28, objectFit: "contain" }}
-            />
+            <Bus className="w-4 h-4" style={{ color: "oklch(0.18 0.06 50)" }} />
           </div>
           <span className="font-display font-bold text-base text-white">
             KIIT Bus Sewa
@@ -227,7 +222,7 @@ const RouteSelector: React.FC<RouteSelectorProps> = ({
           </p>
         </motion.div>
 
-        {/* Route Card — no overflow-hidden so dropdowns aren't clipped */}
+        {/* Route Card */}
         <motion.div
           initial={{ opacity: 0, y: 32, scale: 0.97 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -235,7 +230,7 @@ const RouteSelector: React.FC<RouteSelectorProps> = ({
           className="w-full max-w-md"
         >
           <div
-            className="rounded-2xl"
+            className="rounded-2xl overflow-hidden"
             style={{
               background: "oklch(1 0 0 / 0.96)",
               boxShadow:
@@ -243,13 +238,12 @@ const RouteSelector: React.FC<RouteSelectorProps> = ({
               border: "1px solid oklch(0.90 0.03 220)",
             }}
           >
-            {/* Card accent bar — explicit top-radius to replace overflow-hidden */}
+            {/* Card accent bar */}
             <div
               style={{
                 height: "3px",
                 background:
                   "linear-gradient(90deg, oklch(0.88 0.2 90) 0%, oklch(0.24 0.08 255) 100%)",
-                borderRadius: "1rem 1rem 0 0",
               }}
             />
 

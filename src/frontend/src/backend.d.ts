@@ -26,7 +26,6 @@ export interface Bus {
     availableSeats: bigint;
 }
 export interface backendInterface {
-    loginOrRegister(email: string, password: string): Promise<void>;
     confirmBus(busId: bigint, userEmail: string): Promise<void>;
     getBusLocation(busId: bigint): Promise<Location | null>;
     getBusesOnRoute(routeId: bigint): Promise<Array<Bus>>;

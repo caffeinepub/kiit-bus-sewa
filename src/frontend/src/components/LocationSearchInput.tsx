@@ -30,7 +30,6 @@ const LocationSearchInput: React.FC<LocationSearchInputProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const listRef = useRef<HTMLDivElement>(null);
 
   // Sync query with controlled value
   useEffect(() => {
@@ -62,7 +61,7 @@ const LocationSearchInput: React.FC<LocationSearchInputProps> = ({
       c.name.toLowerCase().includes(q) ||
       c.description.toLowerCase().includes(q)
     );
-  }); // No slice — show all matching campuses, scroll to see more
+  }).slice(0, 8);
 
   const dotColor =
     color === "green" ? "oklch(0.55 0.18 145)" : "oklch(0.50 0.2 245)";
@@ -175,128 +174,84 @@ const LocationSearchInput: React.FC<LocationSearchInputProps> = ({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -6, scale: 0.98 }}
               transition={{ duration: 0.18, ease: "easeOut" }}
-              className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 rounded-2xl"
+              className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 rounded-2xl overflow-hidden"
               style={{
                 background: "oklch(1 0 0)",
                 border: "1px solid oklch(0.88 0.03 220)",
                 boxShadow:
                   "0 16px 48px oklch(0.24 0.08 255 / 0.14), 0 4px 12px oklch(0.24 0.08 255 / 0.07)",
+                maxHeight: "280px",
+                overflowY: "auto",
               }}
             >
-              {/* Header with KIIT logo */}
-              <div
-                className="flex items-center gap-2 px-4 py-2.5"
-                style={{
-                  borderBottom: "1px solid oklch(0.92 0.02 220)",
-                  background: "oklch(0.97 0.01 220)",
-                  borderRadius: "1rem 1rem 0 0",
-                }}
-              >
+              {filtered.length === 0 ? (
                 <div
-                  className="w-6 h-6 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0"
-                  style={{
-                    background: "oklch(1 0 0)",
-                    border: "1px solid oklch(0.88 0.03 220)",
-                  }}
+                  className="px-4 py-5 text-sm font-body text-center"
+                  style={{ color: "oklch(0.60 0.04 230)" }}
                 >
-                  <img
-                    src="/assets/uploads/images-1-1.png"
-                    alt="KIIT"
-                    style={{ width: 20, height: 20, objectFit: "contain" }}
-                  />
+                  No campus found
                 </div>
-                <span
-                  className="text-xs font-body font-semibold"
-                  style={{ color: "oklch(0.45 0.06 240)" }}
-                >
-                  KIIT Campuses
-                </span>
-                <span
-                  className="ml-auto text-xs font-body"
-                  style={{ color: "oklch(0.65 0.04 230)" }}
-                >
-                  {filtered.length} found
-                </span>
-              </div>
-
-              {/* Scrollable list */}
-              <div
-                ref={listRef}
-                style={{
-                  maxHeight: "260px",
-                  overflowY: "auto",
-                  overscrollBehavior: "contain",
-                }}
-              >
-                {filtered.length === 0 ? (
-                  <div
-                    className="px-4 py-5 text-sm font-body text-center"
-                    style={{ color: "oklch(0.60 0.04 230)" }}
-                  >
-                    No campus found
-                  </div>
-                ) : (
-                  <div>
-                    {filtered.map((campus) => (
-                      <button
-                        key={campus.id}
-                        type="button"
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => handleSelect(campus)}
-                        className="w-full px-4 py-3 flex items-center gap-3 transition-colors duration-100"
-                        style={{
-                          background:
-                            value === campus.name ? selectedBg : "transparent",
-                        }}
-                        onMouseEnter={(e) => {
-                          (
-                            e.currentTarget as HTMLButtonElement
-                          ).style.background = hoverBg;
-                        }}
-                        onMouseLeave={(e) => {
-                          (
-                            e.currentTarget as HTMLButtonElement
-                          ).style.background =
-                            value === campus.name ? selectedBg : "transparent";
-                        }}
+              ) : (
+                <div>
+                  {filtered.map((campus) => (
+                    <button
+                      key={campus.id}
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => handleSelect(campus)}
+                      className="w-full px-4 py-3 flex items-center gap-3 transition-colors duration-100"
+                      style={{
+                        background:
+                          value === campus.name ? selectedBg : "transparent",
+                      }}
+                      onMouseEnter={(e) => {
+                        (
+                          e.currentTarget as HTMLButtonElement
+                        ).style.background = hoverBg;
+                      }}
+                      onMouseLeave={(e) => {
+                        (
+                          e.currentTarget as HTMLButtonElement
+                        ).style.background =
+                          value === campus.name ? selectedBg : "transparent";
+                      }}
+                    >
+                      {/* Colored dot circle */}
+                      <div
+                        className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
+                        style={{ background: dotBg }}
                       >
-                        {/* Colored dot circle */}
                         <div
-                          className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
-                          style={{ background: dotBg }}
-                        >
-                          <div
-                            className="w-2.5 h-2.5 rounded-full"
-                            style={{ background: dotColor }}
-                          />
-                        </div>
-
-                        {/* Campus info */}
-                        <div className="flex-1 min-w-0 text-left">
-                          <p
-                            className="font-body font-semibold text-sm truncate"
-                            style={{ color: "oklch(0.18 0.04 240)" }}
-                          >
-                            {campus.name}
-                          </p>
-                          <p
-                            className="font-body text-xs truncate mt-0.5"
-                            style={{ color: "oklch(0.58 0.04 230)" }}
-                          >
-                            {campus.description}
-                          </p>
-                        </div>
-
-                        {/* Right map pin */}
-                        <MapPin
-                          className="w-3.5 h-3.5 shrink-0"
-                          style={{ color: "oklch(0.75 0.03 230)" }}
+                          className="w-2.5 h-2.5 rounded-full"
+                          style={{ background: dotColor }}
                         />
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+                      </div>
+
+                      {/* Campus info */}
+                      <div className="flex-1 min-w-0 text-left">
+                        <p
+                          className="font-body font-semibold text-sm truncate"
+                          style={{ color: "oklch(0.18 0.04 240)" }}
+                        >
+                          {campus.name}
+                        </p>
+                        <p
+                          className="font-body text-xs truncate mt-0.5"
+                          style={{ color: "oklch(0.58 0.04 230)" }}
+                        >
+                          {campus.description}
+                        </p>
+                      </div>
+
+                      {/* Right map pin */}
+                      <MapPin
+                        className="w-3.5 h-3.5 shrink-0"
+                        style={{ color: "oklch(0.75 0.03 230)" }}
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

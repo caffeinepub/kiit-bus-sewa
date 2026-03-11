@@ -34,64 +34,21 @@ actor {
     updatedAt : Int;
   };
 
-  // Stable storage for users across upgrades
-  stable var userEntries : [(Text, Text)] = [];
-
+  // Routes are static, no need for persistent state
   let users = Map.empty<Text, User>();
   let buses = Map.empty<Nat, Bus>();
-  let busLocations = Map.empty<Nat, Location>();
-  let userConfirmedBuses = Map.empty<Text, Nat>();
-
-  // Restore user data from stable storage on upgrade
-  do {
-    for ((email, password) in userEntries.vals()) {
-      users.add(email, { email; password });
-    };
-  };
-
-  system func preupgrade() {
-    let tmp = List.empty<(Text, Text)>();
-    for ((email, user) in users.entries()) {
-      tmp.add((email, user.password));
-    };
-    userEntries := tmp.toArray();
-  };
-
-  system func postupgrade() {
-    for ((email, password) in userEntries.vals()) {
-      users.add(email, { email; password });
-    };
-    userEntries := [];
-  };
+  let busLocations = Map.empty<Nat, Location>(); // Store locations by busId
+  let userConfirmedBuses = Map.empty<Text, Nat>(); // Store confirmed busId per user
 
   func validateKiitEmail(email : Text) : Bool {
     email.endsWith(#text "@kiit.ac.in");
-  };
-
-  // Combined login-or-register: auto-registers new users, logs in existing ones
-  public shared func loginOrRegister(email : Text, password : Text) : async () {
-    if (not validateKiitEmail(email)) {
-      Runtime.trap("Email must be a valid @kiit.ac.in address");
-    };
-    switch (users.get(email)) {
-      case (null) {
-        // New user: register automatically
-        let user : User = { email; password };
-        users.add(email, user);
-      };
-      case (?user) {
-        // Existing user: verify password
-        if (user.password != password) {
-          Runtime.trap("Incorrect password. Please try again.");
-        };
-      };
-    };
   };
 
   public shared ({ caller }) func register(email : Text, password : Text) : async () {
     if (not validateKiitEmail(email)) {
       Runtime.trap("Email must be a valid @kiit.ac.in address");
     };
+
     switch (users.get(email)) {
       case (?_) {
         Runtime.trap("This email is already registered");
@@ -159,3 +116,4 @@ actor {
     busLocations.add(busId, location);
   };
 };
+
