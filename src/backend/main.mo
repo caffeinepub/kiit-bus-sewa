@@ -34,11 +34,10 @@ actor {
     updatedAt : Int;
   };
 
-  // Routes are static, no need for persistent state
-  let users = Map.empty<Text, User>();
-  let buses = Map.empty<Nat, Bus>();
-  let busLocations = Map.empty<Nat, Location>(); // Store locations by busId
-  let userConfirmedBuses = Map.empty<Text, Nat>(); // Store confirmed busId per user
+  stable let users = Map.empty<Text, User>();
+  stable let buses = Map.empty<Nat, Bus>();
+  stable let busLocations = Map.empty<Nat, Location>();
+  stable let userConfirmedBuses = Map.empty<Text, Nat>();
 
   func validateKiitEmail(email : Text) : Bool {
     email.endsWith(#text "@kiit.ac.in");
@@ -56,6 +55,25 @@ actor {
       case (null) {
         let user : User = { email; password };
         users.add(email, user);
+      };
+    };
+  };
+
+  // loginOrRegister: tries login, registers automatically if account not found
+  public shared ({ caller }) func loginOrRegister(email : Text, password : Text) : async () {
+    if (not validateKiitEmail(email)) {
+      Runtime.trap("Email must be a valid @kiit.ac.in address");
+    };
+    switch (users.get(email)) {
+      case (null) {
+        // Auto-register new user
+        let user : User = { email; password };
+        users.add(email, user);
+      };
+      case (?user) {
+        if (user.password != password) {
+          Runtime.trap("Incorrect password. Please try again.");
+        };
       };
     };
   };
@@ -116,4 +134,3 @@ actor {
     busLocations.add(busId, location);
   };
 };
-

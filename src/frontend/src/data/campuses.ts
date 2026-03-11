@@ -4,6 +4,7 @@ export interface KIITCampus {
   description: string;
   lat: number;
   lng: number;
+  busNumber: string;
 }
 
 export const KIIT_CAMPUSES: KIITCampus[] = [
@@ -13,6 +14,7 @@ export const KIIT_CAMPUSES: KIITCampus[] = [
     description: "Main Administrative Campus, Patia, Bhubaneswar",
     lat: 20.3556,
     lng: 85.8189,
+    busNumber: "Bus 101",
   },
   {
     id: "campus-2",
@@ -20,6 +22,7 @@ export const KIIT_CAMPUSES: KIITCampus[] = [
     description: "School of Technology, Patia",
     lat: 20.3548,
     lng: 85.8179,
+    busNumber: "Bus 102",
   },
   {
     id: "campus-3",
@@ -27,6 +30,7 @@ export const KIIT_CAMPUSES: KIITCampus[] = [
     description: "School of Medical Sciences, Patia",
     lat: 20.354,
     lng: 85.82,
+    busNumber: "Bus 103",
   },
   {
     id: "campus-4",
@@ -34,6 +38,7 @@ export const KIIT_CAMPUSES: KIITCampus[] = [
     description: "School of Law, KIIT Road, Patia",
     lat: 20.353,
     lng: 85.8212,
+    busNumber: "Bus 104",
   },
   {
     id: "campus-5",
@@ -41,6 +46,7 @@ export const KIIT_CAMPUSES: KIITCampus[] = [
     description: "School of Architecture, Patia",
     lat: 20.3522,
     lng: 85.822,
+    busNumber: "Bus 105",
   },
   {
     id: "campus-6",
@@ -48,6 +54,7 @@ export const KIIT_CAMPUSES: KIITCampus[] = [
     description: "School of Management, Patia",
     lat: 20.3514,
     lng: 85.823,
+    busNumber: "Bus 106",
   },
   {
     id: "campus-7",
@@ -55,6 +62,7 @@ export const KIIT_CAMPUSES: KIITCampus[] = [
     description: "School of Biotechnology, Patia",
     lat: 20.3506,
     lng: 85.824,
+    busNumber: "Bus 107",
   },
   {
     id: "campus-8",
@@ -62,6 +70,7 @@ export const KIIT_CAMPUSES: KIITCampus[] = [
     description: "School of Fashion Technology, Patia",
     lat: 20.3498,
     lng: 85.825,
+    busNumber: "Bus 108",
   },
   {
     id: "campus-9",
@@ -69,6 +78,7 @@ export const KIIT_CAMPUSES: KIITCampus[] = [
     description: "School of Film & Media, Patia",
     lat: 20.349,
     lng: 85.826,
+    busNumber: "Bus 109",
   },
   {
     id: "campus-10",
@@ -76,6 +86,7 @@ export const KIIT_CAMPUSES: KIITCampus[] = [
     description: "School of Applied Sciences, Patia",
     lat: 20.3482,
     lng: 85.827,
+    busNumber: "Bus 110",
   },
   {
     id: "campus-11",
@@ -83,6 +94,7 @@ export const KIIT_CAMPUSES: KIITCampus[] = [
     description: "School of Computer Engineering, Patia",
     lat: 20.3474,
     lng: 85.828,
+    busNumber: "Bus 111",
   },
   {
     id: "campus-12",
@@ -90,6 +102,7 @@ export const KIIT_CAMPUSES: KIITCampus[] = [
     description: "School of Electronics Engineering, Patia",
     lat: 20.3466,
     lng: 85.829,
+    busNumber: "Bus 112",
   },
   {
     id: "campus-13",
@@ -97,6 +110,7 @@ export const KIIT_CAMPUSES: KIITCampus[] = [
     description: "School of Mechanical Engineering, Patia",
     lat: 20.3458,
     lng: 85.83,
+    busNumber: "Bus 113",
   },
   {
     id: "campus-14",
@@ -104,6 +118,7 @@ export const KIIT_CAMPUSES: KIITCampus[] = [
     description: "School of Civil Engineering, Patia",
     lat: 20.345,
     lng: 85.831,
+    busNumber: "Bus 114",
   },
   {
     id: "campus-15",
@@ -111,6 +126,7 @@ export const KIIT_CAMPUSES: KIITCampus[] = [
     description: "School of Electrical Engineering, Patia",
     lat: 20.3442,
     lng: 85.832,
+    busNumber: "Bus 115",
   },
   {
     id: "campus-16",
@@ -118,6 +134,7 @@ export const KIIT_CAMPUSES: KIITCampus[] = [
     description: "School of Public Health, Patia",
     lat: 20.3434,
     lng: 85.833,
+    busNumber: "Bus 116",
   },
   {
     id: "campus-17",
@@ -125,6 +142,7 @@ export const KIIT_CAMPUSES: KIITCampus[] = [
     description: "School of Nursing, KIIT Road",
     lat: 20.3426,
     lng: 85.834,
+    busNumber: "Bus 117",
   },
   {
     id: "campus-18",
@@ -132,6 +150,7 @@ export const KIIT_CAMPUSES: KIITCampus[] = [
     description: "School of Dental Sciences, Patia",
     lat: 20.3418,
     lng: 85.835,
+    busNumber: "Bus 118",
   },
   {
     id: "campus-19",
@@ -139,6 +158,7 @@ export const KIIT_CAMPUSES: KIITCampus[] = [
     description: "School of Education, Patia",
     lat: 20.341,
     lng: 85.836,
+    busNumber: "Bus 119",
   },
   {
     id: "campus-20",
@@ -146,6 +166,7 @@ export const KIIT_CAMPUSES: KIITCampus[] = [
     description: "School of Social Work, Patia",
     lat: 20.3402,
     lng: 85.837,
+    busNumber: "Bus 120",
   },
   {
     id: "campus-21",
@@ -153,6 +174,7 @@ export const KIIT_CAMPUSES: KIITCampus[] = [
     description: "Research & Innovation Centre, Patia",
     lat: 20.3394,
     lng: 85.838,
+    busNumber: "Bus 121",
   },
   {
     id: "campus-22",
@@ -160,6 +182,7 @@ export const KIIT_CAMPUSES: KIITCampus[] = [
     description: "Sports Complex Campus, Patia",
     lat: 20.3386,
     lng: 85.839,
+    busNumber: "Bus 122",
   },
   {
     id: "campus-23",
@@ -167,6 +190,7 @@ export const KIIT_CAMPUSES: KIITCampus[] = [
     description: "International Student Hostel, Patia",
     lat: 20.3378,
     lng: 85.84,
+    busNumber: "Bus 123",
   },
   {
     id: "campus-24",
@@ -174,6 +198,7 @@ export const KIIT_CAMPUSES: KIITCampus[] = [
     description: "KIIT Technology Business Incubator, Patia",
     lat: 20.337,
     lng: 85.841,
+    busNumber: "Bus 124",
   },
   {
     id: "campus-25",
@@ -181,6 +206,7 @@ export const KIIT_CAMPUSES: KIITCampus[] = [
     description: "KIIT School of Languages, Patia",
     lat: 20.3362,
     lng: 85.842,
+    busNumber: "Bus 125",
   },
   {
     id: "kims",
@@ -188,6 +214,7 @@ export const KIIT_CAMPUSES: KIITCampus[] = [
     description: "Kalinga Institute of Medical Sciences, Bhubaneswar",
     lat: 20.3536,
     lng: 85.8182,
+    busNumber: "Bus 201",
   },
   {
     id: "kiss",
@@ -195,5 +222,6 @@ export const KIIT_CAMPUSES: KIITCampus[] = [
     description: "Kalinga Institute of Social Sciences, Bhubaneswar",
     lat: 20.3521,
     lng: 85.8175,
+    busNumber: "Bus 202",
   },
 ];

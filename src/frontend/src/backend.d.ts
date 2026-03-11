@@ -32,6 +32,7 @@ export interface backendInterface {
     getRoutes(): Promise<Array<Route>>;
     getUserConfirmedBus(userEmail: string): Promise<bigint | null>;
     login(email: string, password: string): Promise<void>;
+    loginOrRegister(email: string, password: string): Promise<void>;
     register(email: string, password: string): Promise<void>;
     updateBusLocation(busId: bigint, lat: number, lng: number): Promise<void>;
 }

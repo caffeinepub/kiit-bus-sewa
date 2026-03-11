@@ -61,7 +61,7 @@ const LocationSearchInput: React.FC<LocationSearchInputProps> = ({
       c.name.toLowerCase().includes(q) ||
       c.description.toLowerCase().includes(q)
     );
-  }).slice(0, 8);
+  });
 
   const dotColor =
     color === "green" ? "oklch(0.55 0.18 145)" : "oklch(0.50 0.2 245)";
@@ -174,16 +174,51 @@ const LocationSearchInput: React.FC<LocationSearchInputProps> = ({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -6, scale: 0.98 }}
               transition={{ duration: 0.18, ease: "easeOut" }}
-              className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 rounded-2xl overflow-hidden"
+              className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 rounded-2xl"
               style={{
                 background: "oklch(1 0 0)",
                 border: "1px solid oklch(0.88 0.03 220)",
                 boxShadow:
                   "0 16px 48px oklch(0.24 0.08 255 / 0.14), 0 4px 12px oklch(0.24 0.08 255 / 0.07)",
-                maxHeight: "280px",
+                maxHeight: "320px",
                 overflowY: "auto",
               }}
             >
+              {/* Sticky header with KIIT logo */}
+              <div
+                className="sticky top-0 flex items-center gap-2 px-4 py-2.5 z-10"
+                style={{
+                  background: "oklch(0.97 0.02 220)",
+                  borderBottom: "1px solid oklch(0.90 0.03 220)",
+                }}
+              >
+                <div
+                  className="w-6 h-6 rounded-full flex items-center justify-center overflow-hidden shrink-0"
+                  style={{
+                    background: "oklch(1 0 0)",
+                    border: "1px solid oklch(0.85 0.08 145)",
+                  }}
+                >
+                  <img
+                    src="/assets/uploads/images-2-1.png"
+                    alt="KIIT"
+                    style={{ width: 20, height: 20, objectFit: "contain" }}
+                  />
+                </div>
+                <span
+                  className="text-xs font-body font-semibold"
+                  style={{ color: "oklch(0.35 0.06 240)" }}
+                >
+                  KIIT Campuses
+                </span>
+                <span
+                  className="ml-auto text-xs font-body"
+                  style={{ color: "oklch(0.58 0.04 230)" }}
+                >
+                  {filtered.length} found
+                </span>
+              </div>
+
               {filtered.length === 0 ? (
                 <div
                   className="px-4 py-5 text-sm font-body text-center"

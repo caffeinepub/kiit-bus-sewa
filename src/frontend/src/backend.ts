@@ -114,6 +114,7 @@ export interface backendInterface {
     getRoutes(): Promise<Array<Route>>;
     getUserConfirmedBus(userEmail: string): Promise<bigint | null>;
     login(email: string, password: string): Promise<void>;
+    loginOrRegister(email: string, password: string): Promise<void>;
     register(email: string, password: string): Promise<void>;
     updateBusLocation(busId: bigint, lat: number, lng: number): Promise<void>;
 }
@@ -201,6 +202,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.login(arg0, arg1);
+            return result;
+        }
+    }
+    async loginOrRegister(arg0: string, arg1: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await (this.actor as any).loginOrRegister(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await (this.actor as any).loginOrRegister(arg0, arg1);
             return result;
         }
     }

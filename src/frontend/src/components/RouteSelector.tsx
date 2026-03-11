@@ -1,12 +1,9 @@
-import type { Route } from "@/backend.d";
 import { Button } from "@/components/ui/button";
-import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, Bus, LogOut, MapPin, RefreshCw } from "lucide-react";
+import { Bus, LogOut, MapPin } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import type React from "react";
 import { useEffect, useState } from "react";
 import { type KIITCampus, KIIT_CAMPUSES } from "../data/campuses";
-import { useActor } from "../hooks/useActor";
 import AnimatedBackground from "./AnimatedBackground";
 import LocationSearchInput from "./LocationSearchInput";
 
@@ -18,6 +15,7 @@ interface RouteSelectorProps {
     to: string,
     fromLat: number,
     fromLng: number,
+    busNumber: string,
   ) => void;
   onLogout: () => void;
 }
@@ -27,11 +25,8 @@ const RouteSelector: React.FC<RouteSelectorProps> = ({
   onSelectRoute,
   onLogout,
 }) => {
-  const { actor, isFetching: isActorLoading } = useActor();
-  const [from, setFrom] = useState<KIITCampus | null>(null);
   const [to, setTo] = useState<KIITCampus | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isSearching, setIsSearching] = useState(false);
   const [showSessionRestored, setShowSessionRestored] = useState(true);
 
   useEffect(() => {
@@ -39,61 +34,16 @@ const RouteSelector: React.FC<RouteSelectorProps> = ({
     return () => clearTimeout(timer);
   }, []);
 
-  const { data: routes = [], isLoading: routesLoading } = useQuery<Route[]>({
-    queryKey: ["routes"],
-    queryFn: async () => {
-      if (!actor) return [];
-      return actor.getRoutes();
-    },
-    enabled: !!actor && !isActorLoading,
-  });
-
-  const handleSearch = async () => {
-    if (!from) {
-      setError("Please select a departure campus.");
-      return;
-    }
+  const handleSearch = () => {
     if (!to) {
       setError("Please select a destination campus.");
       return;
     }
-    if (from.id === to.id) {
-      setError("Departure and destination cannot be the same.");
-      return;
-    }
     setError(null);
-    setIsSearching(true);
-
-    try {
-      // Find matching route from backend
-      const matched = routes.find(
-        (r) =>
-          (r.from
-            .toLowerCase()
-            .includes(from.name.split(" ")[0].toLowerCase()) &&
-            r.to.toLowerCase().includes(to.name.split(" ")[0].toLowerCase())) ||
-          (r.from.toLowerCase().includes(to.name.split(" ")[0].toLowerCase()) &&
-            r.to.toLowerCase().includes(from.name.split(" ")[0].toLowerCase())),
-      );
-
-      // Use matched route or fallback to route 1n for demo
-      const routeId = matched ? matched.id : 1n;
-      onSelectRoute(routeId, from.name, to.name, from.lat, from.lng);
-    } catch {
-      setError("Failed to find routes. Please try again.");
-    } finally {
-      setIsSearching(false);
-    }
+    onSelectRoute(1n, "KIIT Campus", to.name, to.lat, to.lng, to.busNumber);
   };
 
   const initials = userEmail.split("@")[0].slice(0, 2).toUpperCase();
-
-  // Quick-pick popular routes using first 3 campuses
-  const quickRoutes = [
-    { from: KIIT_CAMPUSES[0], to: KIIT_CAMPUSES[1] },
-    { from: KIIT_CAMPUSES[1], to: KIIT_CAMPUSES[2] },
-    { from: KIIT_CAMPUSES[0], to: KIIT_CAMPUSES[2] },
-  ];
 
   return (
     <div className="min-h-screen dashboard-bg flex flex-col relative overflow-hidden">
@@ -108,23 +58,28 @@ const RouteSelector: React.FC<RouteSelectorProps> = ({
         }}
       >
         <div className="flex items-center gap-2.5">
+          {/* KIIT Logo circle in header */}
           <div
-            className="flex items-center justify-center rounded-xl"
+            className="flex items-center justify-center rounded-full overflow-hidden border-2"
             style={{
-              width: 36,
-              height: 36,
-              background: "oklch(0.88 0.2 90)",
-              boxShadow: "0 2px 8px oklch(0.88 0.2 90 / 0.5)",
+              width: 38,
+              height: 38,
+              background: "oklch(1 0 0 / 0.95)",
+              borderColor: "oklch(0.55 0.18 145)",
+              boxShadow: "0 2px 8px oklch(0.55 0.18 145 / 0.4)",
             }}
           >
-            <Bus className="w-4 h-4" style={{ color: "oklch(0.18 0.06 50)" }} />
+            <img
+              src="/assets/uploads/images-2-1.png"
+              alt="KIIT Logo"
+              style={{ width: 30, height: 30, objectFit: "contain" }}
+            />
           </div>
           <span className="font-display font-bold text-base text-white">
             KIIT Bus Sewa
           </span>
         </div>
         <div className="flex items-center gap-3">
-          {/* Session restored badge */}
           <AnimatePresence>
             {showSessionRestored && (
               <motion.span
@@ -144,7 +99,6 @@ const RouteSelector: React.FC<RouteSelectorProps> = ({
               </motion.span>
             )}
           </AnimatePresence>
-          {/* Avatar */}
           <div
             className="flex items-center gap-2 px-3 py-1.5 rounded-full"
             style={{
@@ -183,7 +137,7 @@ const RouteSelector: React.FC<RouteSelectorProps> = ({
       </header>
 
       <main className="flex-1 flex flex-col items-center justify-center px-4 py-10 relative z-10">
-        {/* Hero section */}
+        {/* Hero */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -218,7 +172,7 @@ const RouteSelector: React.FC<RouteSelectorProps> = ({
             className="font-body text-sm"
             style={{ color: "oklch(0.52 0.04 230)" }}
           >
-            Select your route to find available buses
+            Select your destination to find your bus
           </p>
         </motion.div>
 
@@ -230,7 +184,7 @@ const RouteSelector: React.FC<RouteSelectorProps> = ({
           className="w-full max-w-md"
         >
           <div
-            className="rounded-2xl overflow-hidden"
+            className="rounded-2xl overflow-visible"
             style={{
               background: "oklch(1 0 0 / 0.96)",
               boxShadow:
@@ -238,77 +192,106 @@ const RouteSelector: React.FC<RouteSelectorProps> = ({
               border: "1px solid oklch(0.90 0.03 220)",
             }}
           >
-            {/* Card accent bar */}
             <div
               style={{
                 height: "3px",
+                borderRadius: "12px 12px 0 0",
                 background:
                   "linear-gradient(90deg, oklch(0.88 0.2 90) 0%, oklch(0.24 0.08 255) 100%)",
               }}
             />
 
             <div className="p-7">
-              <div className="flex items-center gap-2 mb-6">
-                <MapPin
-                  className="w-5 h-5"
-                  style={{ color: "oklch(0.24 0.08 255)" }}
-                />
-                <h2
-                  className="font-display font-bold text-lg"
-                  style={{ color: "oklch(0.22 0.08 255)" }}
+              <div className="flex items-center gap-3 mb-6">
+                {/* KIIT logo circle next to heading */}
+                <div
+                  className="flex items-center justify-center rounded-full overflow-hidden border-2 shrink-0"
+                  style={{
+                    width: 36,
+                    height: 36,
+                    background: "oklch(1 0 0)",
+                    borderColor: "oklch(0.55 0.18 145)",
+                    boxShadow: "0 2px 6px oklch(0.55 0.18 145 / 0.3)",
+                  }}
                 >
-                  Select Your Route
-                </h2>
-              </div>
-
-              {/* Route picker layout */}
-              <div className="space-y-4">
-                {/* From */}
-                <LocationSearchInput
-                  label="From Campus"
-                  placeholder="Choose departure campus"
-                  value={from?.name ?? ""}
-                  onSelect={(campus) => {
-                    setFrom(campus);
-                    setError(null);
-                  }}
-                  onClear={() => setFrom(null)}
-                  excludeCampusId={to?.id}
-                  color="green"
-                  dataOcid="route.search_input"
-                />
-
-                {/* Swap arrow */}
-                <div className="flex items-center justify-center">
-                  <div
-                    className="w-8 h-8 rounded-full flex items-center justify-center"
-                    style={{
-                      background: "oklch(0.88 0.05 215)",
-                      border: "2px solid oklch(0.84 0.04 220)",
-                    }}
-                  >
-                    <ArrowRight
-                      className="w-4 h-4"
-                      style={{ color: "oklch(0.24 0.08 255)" }}
-                    />
-                  </div>
+                  <img
+                    src="/assets/uploads/images-2-1.png"
+                    alt="KIIT"
+                    style={{ width: 28, height: 28, objectFit: "contain" }}
+                  />
                 </div>
-
-                {/* To */}
-                <LocationSearchInput
-                  label="To Campus"
-                  placeholder="Choose destination campus"
-                  value={to?.name ?? ""}
-                  onSelect={(campus) => {
-                    setTo(campus);
-                    setError(null);
-                  }}
-                  onClear={() => setTo(null)}
-                  excludeCampusId={from?.id}
-                  color="blue"
-                  dataOcid="route.input"
-                />
+                <div className="flex items-center gap-2">
+                  <MapPin
+                    className="w-5 h-5"
+                    style={{ color: "oklch(0.24 0.08 255)" }}
+                  />
+                  <h2
+                    className="font-display font-bold text-lg"
+                    style={{ color: "oklch(0.22 0.08 255)" }}
+                  >
+                    Select Destination
+                  </h2>
+                </div>
               </div>
+
+              {/* Destination picker */}
+              <LocationSearchInput
+                label="Destination Campus"
+                placeholder="Search all 27 campuses…"
+                value={to?.name ?? ""}
+                onSelect={(campus) => {
+                  setTo(campus);
+                  setError(null);
+                }}
+                onClear={() => setTo(null)}
+                color="blue"
+                dataOcid="route.search_input"
+              />
+
+              {/* Bus assignment banner */}
+              <AnimatePresence>
+                {to && (
+                  <motion.div
+                    key={to.id}
+                    initial={{ opacity: 0, y: 10, scale: 0.97 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10, scale: 0.97 }}
+                    transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                    className="mt-5 rounded-2xl px-5 py-4 flex items-center gap-4"
+                    style={{
+                      background:
+                        "linear-gradient(135deg, oklch(0.95 0.18 85) 0%, oklch(0.98 0.12 75) 100%)",
+                      border: "2px solid oklch(0.88 0.22 85)",
+                      boxShadow: "0 6px 24px oklch(0.88 0.22 85 / 0.35)",
+                    }}
+                    data-ocid="route.success_state"
+                  >
+                    <div
+                      className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 text-2xl"
+                      style={{
+                        background: "oklch(0.88 0.22 85)",
+                        boxShadow: "0 2px 8px oklch(0.70 0.2 75 / 0.4)",
+                      }}
+                    >
+                      🚌
+                    </div>
+                    <div>
+                      <p
+                        className="font-display font-black text-xl leading-tight"
+                        style={{ color: "oklch(0.22 0.1 55)" }}
+                      >
+                        {to.busNumber}
+                      </p>
+                      <p
+                        className="font-body text-sm font-medium mt-0.5"
+                        style={{ color: "oklch(0.38 0.1 60)" }}
+                      >
+                        is going to <span className="font-bold">{to.name}</span>
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Error */}
               {error && (
@@ -328,102 +311,48 @@ const RouteSelector: React.FC<RouteSelectorProps> = ({
                 </motion.p>
               )}
 
-              {/* Stats row */}
-              {routesLoading ? (
-                <div
-                  className="mt-5 flex items-center justify-center gap-2 text-xs font-body py-2"
-                  data-ocid="route.loading_state"
-                  style={{ color: "oklch(0.58 0.04 230)" }}
-                >
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  Loading routes…
-                </div>
-              ) : (
-                <div
-                  className="mt-5 flex items-center gap-3 text-xs font-body py-2 px-3 rounded-xl"
-                  style={{ background: "oklch(0.93 0.03 220 / 0.5)" }}
-                >
-                  <Bus
-                    className="w-4 h-4 shrink-0"
-                    style={{ color: "oklch(0.24 0.08 255)" }}
-                  />
-                  <span style={{ color: "oklch(0.45 0.05 230)" }}>
-                    <strong style={{ color: "oklch(0.24 0.08 255)" }}>
-                      {routes.length || 8}
-                    </strong>{" "}
-                    routes available · 25 KIIT campuses covered
-                  </span>
-                </div>
-              )}
+              {/* Campus count */}
+              <div
+                className="mt-5 flex items-center gap-3 text-xs font-body py-2 px-3 rounded-xl"
+                style={{ background: "oklch(0.93 0.03 220 / 0.5)" }}
+              >
+                <Bus
+                  className="w-4 h-4 shrink-0"
+                  style={{ color: "oklch(0.24 0.08 255)" }}
+                />
+                <span style={{ color: "oklch(0.45 0.05 230)" }}>
+                  <strong style={{ color: "oklch(0.24 0.08 255)" }}>
+                    {KIIT_CAMPUSES.length}
+                  </strong>{" "}
+                  campuses covered · Each with a dedicated bus
+                </span>
+              </div>
 
-              {/* Search button */}
+              {/* Track button */}
               <Button
                 type="button"
                 onClick={handleSearch}
-                disabled={isSearching || routesLoading}
+                disabled={!to}
                 data-ocid="route.primary_button"
                 className="mt-5 w-full h-12 font-body font-semibold text-base rounded-xl"
                 style={{
-                  background: "oklch(0.24 0.08 255)",
+                  background: to
+                    ? "oklch(0.24 0.08 255)"
+                    : "oklch(0.75 0.03 230)",
                   color: "oklch(0.98 0 0)",
-                  boxShadow: "0 4px 14px oklch(0.24 0.08 255 / 0.35)",
+                  boxShadow: to
+                    ? "0 4px 14px oklch(0.24 0.08 255 / 0.35)"
+                    : "none",
                 }}
               >
-                {isSearching ? (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                    Searching…
-                  </>
-                ) : (
-                  <>
-                    <Bus className="mr-2 h-4 w-4" />
-                    Find Buses
-                  </>
-                )}
+                <Bus className="mr-2 h-4 w-4" />
+                Track Live Location
               </Button>
             </div>
           </div>
-
-          {/* Quick picks */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4, duration: 0.5 }}
-            className="mt-5"
-          >
-            <p
-              className="text-xs font-body text-center mb-3"
-              style={{ color: "oklch(0.55 0.04 230)" }}
-            >
-              Popular routes
-            </p>
-            <div className="flex flex-wrap gap-2 justify-center">
-              {quickRoutes.map((route, idx) => (
-                <button
-                  key={`${route.from.id}-${route.to.id}`}
-                  type="button"
-                  data-ocid={`route.item.${idx + 1}`}
-                  onClick={() => {
-                    setFrom(route.from);
-                    setTo(route.to);
-                    setError(null);
-                  }}
-                  className="text-xs font-body px-3 py-1.5 rounded-full transition-all duration-150"
-                  style={{
-                    background: "oklch(1 0 0 / 0.8)",
-                    color: "oklch(0.36 0.08 255)",
-                    border: "1px solid oklch(0.84 0.04 215 / 0.6)",
-                  }}
-                >
-                  {route.from.name} → {route.to.name}
-                </button>
-              ))}
-            </div>
-          </motion.div>
         </motion.div>
       </main>
 
-      {/* Footer */}
       <footer className="py-4 px-6 text-center relative z-10">
         <p
           className="text-xs font-body"
