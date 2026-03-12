@@ -20,7 +20,7 @@ const THINGSPEAK_URL = `https://api.thingspeak.com/channels/${THINGSPEAK_CHANNEL
 
 const DEFAULT_LAT = 20.3543;
 const DEFAULT_LNG = 85.8194;
-const REFRESH_INTERVAL_MS = 20000;
+const REFRESH_INTERVAL_MS = 10000;
 
 interface BusTrackingProps {
   busId: bigint;
@@ -46,14 +46,19 @@ function loadLeaflet(): Promise<void> {
       link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
       document.head.appendChild(link);
     }
-    const script = document.createElement("script");
-    script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-    script.onload = () => {
+    if (!document.querySelector('script[src*="leaflet"]')) {
+      const script = document.createElement("script");
+      script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+      script.onload = () => {
+        leafletLoaded = true;
+        resolve();
+      };
+      script.onerror = reject;
+      document.head.appendChild(script);
+    } else {
       leafletLoaded = true;
       resolve();
-    };
-    script.onerror = reject;
-    document.head.appendChild(script);
+    }
   });
   return leafletLoadPromise;
 }
@@ -144,21 +149,19 @@ const BusTracking: React.FC<BusTrackingProps> = ({
           zoomControl: true,
         });
 
-        const tileLayer = L.tileLayer as (url: string, opts: object) => unknown;
-        tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          attribution:
-            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-          maxZoom: 19,
-        });
-        leafletCall(
-          tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        const tileLayerFn = L.tileLayer as (
+          url: string,
+          opts: object,
+        ) => unknown;
+        const tiles = tileLayerFn(
+          "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+          {
             attribution:
               '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
             maxZoom: 19,
-          }),
-          "addTo",
-          map,
+          },
         );
+        leafletCall(tiles, "addTo", map);
 
         const divIcon = L.divIcon as (opts: object) => unknown;
         const busIcon = divIcon({
@@ -465,7 +468,7 @@ const BusTracking: React.FC<BusTrackingProps> = ({
                 className="text-xs font-body"
                 style={{ color: "oklch(0.80 0.04 215)" }}
               >
-                every 20s
+                every 10s
               </span>
             </div>
           </div>
@@ -474,7 +477,7 @@ const BusTracking: React.FC<BusTrackingProps> = ({
             <div
               className="flex flex-col items-center justify-center gap-3"
               style={{
-                height: 400,
+                height: 500,
                 width: "100%",
                 background: "oklch(0.93 0.03 220)",
               }}
@@ -495,7 +498,7 @@ const BusTracking: React.FC<BusTrackingProps> = ({
             <div
               ref={mapContainerRef}
               style={{
-                height: 400,
+                height: 500,
                 width: "100%",
                 display: "block",
                 position: "relative",
@@ -520,7 +523,7 @@ const BusTracking: React.FC<BusTrackingProps> = ({
                 className="text-xs font-body"
                 style={{ color: "oklch(0.55 0.04 230)" }}
               >
-                Updates every 20s
+                Updates every 10s
               </span>
             </div>
             <a
