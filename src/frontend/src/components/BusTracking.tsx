@@ -14,13 +14,52 @@ import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import AnimatedBackground from "./AnimatedBackground";
 
-const THINGSPEAK_CHANNEL_ID = "3295601";
-const THINGSPEAK_API_KEY = "Y7EDQNCA85UFKP7M";
+const THINGSPEAK_CHANNEL_ID = "3294061";
+const THINGSPEAK_API_KEY = "WZDH0ALTCW8BM21M";
 const THINGSPEAK_URL = `https://api.thingspeak.com/channels/${THINGSPEAK_CHANNEL_ID}/feeds/last.json?api_key=${THINGSPEAK_API_KEY}`;
 
 const DEFAULT_LAT = 20.3543;
 const DEFAULT_LNG = 85.8194;
 const REFRESH_INTERVAL_MS = 10000;
+
+// Extend window for Leaflet globals injected from CDN
+declare global {
+  interface Window {
+    L: any;
+  }
+}
+
+/** Load Leaflet CSS + JS from CDN once, return a promise that resolves when ready */
+function loadLeaflet(): Promise<void> {
+  return new Promise((resolve) => {
+    if (window.L) {
+      resolve();
+      return;
+    }
+    // CSS
+    if (!document.querySelector('link[href*="leaflet"]')) {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+      document.head.appendChild(link);
+    }
+    // JS
+    if (!document.querySelector('script[src*="leaflet"]')) {
+      const script = document.createElement("script");
+      script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+      script.onload = () => resolve();
+      document.head.appendChild(script);
+    } else {
+      // script tag already present, wait for it
+      const interval = setInterval(() => {
+        if (window.L) {
+          clearInterval(interval);
+          resolve();
+        }
+      }, 50);
+    }
+  });
+}
 
 interface BusTrackingProps {
   busId: bigint;
@@ -31,42 +70,8 @@ interface BusTrackingProps {
   fromLng?: number;
   userEmail: string;
   onBack: () => void;
-}
-
-let leafletLoaded = false;
-let leafletLoadPromise: Promise<void> | null = null;
-
-function loadLeaflet(): Promise<void> {
-  if (leafletLoaded) return Promise.resolve();
-  if (leafletLoadPromise) return leafletLoadPromise;
-  leafletLoadPromise = new Promise((resolve, reject) => {
-    if (!document.querySelector('link[href*="leaflet"]')) {
-      const link = document.createElement("link");
-      link.rel = "stylesheet";
-      link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
-      document.head.appendChild(link);
-    }
-    if (!document.querySelector('script[src*="leaflet"]')) {
-      const script = document.createElement("script");
-      script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-      script.onload = () => {
-        leafletLoaded = true;
-        resolve();
-      };
-      script.onerror = reject;
-      document.head.appendChild(script);
-    } else {
-      leafletLoaded = true;
-      resolve();
-    }
-  });
-  return leafletLoadPromise;
-}
-
-// Helper to call Leaflet methods without triggering noExplicitAny
-function leafletCall(obj: unknown, method: string, ...args: unknown[]): void {
-  if (!obj) return;
-  (obj as Record<string, (...a: unknown[]) => void>)[method](...args);
+  userLat?: number;
+  userLng?: number;
 }
 
 const BusTracking: React.FC<BusTrackingProps> = ({
@@ -74,25 +79,165 @@ const BusTracking: React.FC<BusTrackingProps> = ({
   from,
   to,
   onBack,
+  userLat,
+  userLng,
 }) => {
   const [busLat, setBusLat] = useState<number>(DEFAULT_LAT);
   const [busLng, setBusLng] = useState<number>(DEFAULT_LNG);
   const [isNearby, setIsNearby] = useState(false);
-  const [userLat, setUserLat] = useState<number | null>(null);
-  const [userLng, setUserLng] = useState<number | null>(null);
   const [geoError, setGeoError] = useState<string | null>(null);
   const [pollError, setPollError] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
-  const [isLoading, setIsLoading] = useState(true);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<unknown>(null);
-  const markerRef = useRef<unknown>(null);
-  // Store initial coords for map init (refs avoid stale closure)
-  const initLatRef = useRef(DEFAULT_LAT);
-  const initLngRef = useRef(DEFAULT_LNG);
-  const busNumberRef = useRef(busNumber);
-  const toRef = useRef(to);
+  const mapRef = useRef<any>(null);
+  const markerRef = useRef<any>(null);
+  const userMarkerRef = useRef<any>(null);
+
+  // Initialise map once on mount (after Leaflet CDN loads)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: map init runs once; userLat/userLng handled by separate effect
+  useEffect(() => {
+    let destroyed = false;
+    const timeouts: ReturnType<typeof setTimeout>[] = [];
+    let resizeObserver: ResizeObserver | null = null;
+
+    loadLeaflet().then(() => {
+      if (destroyed || !mapContainerRef.current || mapRef.current) return;
+
+      const L = window.L;
+
+      // Fix default marker icon paths broken by bundlers
+      L.Icon.Default.prototype._getIconUrl = undefined;
+      L.Icon.Default.mergeOptions({
+        iconRetinaUrl:
+          "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+        iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+        shadowUrl:
+          "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+      });
+
+      const map = L.map(mapContainerRef.current, {
+        center: [DEFAULT_LAT, DEFAULT_LNG],
+        zoom: 14,
+        zoomControl: true,
+      });
+
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      }).addTo(map);
+
+      const busIcon = L.divIcon({
+        className: "",
+        html: `<div style="font-size:32px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4))">🚌</div>`,
+        iconSize: [36, 36],
+        iconAnchor: [18, 18],
+      });
+
+      const marker = L.marker([DEFAULT_LAT, DEFAULT_LNG], {
+        icon: busIcon,
+      }).addTo(map);
+      marker.bindPopup(`<b>${busNumber}</b><br/>→ ${to}`);
+
+      mapRef.current = map;
+      markerRef.current = marker;
+
+      // Add user location marker immediately if coordinates are available
+      if (userLat !== undefined && userLng !== undefined) {
+        const userIcon = L.divIcon({
+          className: "",
+          html: `<div style="width:14px;height:14px;border-radius:50%;background:#3b82f6;border:3px solid white;box-shadow:0 0 0 2px #3b82f6;"></div>`,
+          iconSize: [14, 14],
+          iconAnchor: [7, 7],
+        });
+        const userMarker = L.marker([userLat, userLng], {
+          icon: userIcon,
+        }).addTo(map);
+        userMarker.bindPopup("<b>Your Location</b>");
+        userMarkerRef.current = userMarker;
+      }
+
+      // Multiple invalidateSize calls to handle CSS animations / framer-motion entry
+      const scheduleInvalidate = (delay: number) => {
+        const t = setTimeout(() => {
+          if (!destroyed) map.invalidateSize(true);
+        }, delay);
+        timeouts.push(t);
+      };
+
+      scheduleInvalidate(100);
+      scheduleInvalidate(300);
+      scheduleInvalidate(600);
+      scheduleInvalidate(1000);
+
+      const t200 = setTimeout(() => {
+        if (!destroyed) {
+          map.invalidateSize(true);
+          window.dispatchEvent(new Event("resize"));
+        }
+      }, 200);
+      timeouts.push(t200);
+
+      // ResizeObserver: re-invalidate whenever the container changes size
+      if (typeof ResizeObserver !== "undefined" && mapContainerRef.current) {
+        resizeObserver = new ResizeObserver(() => {
+          if (!destroyed && mapRef.current) map.invalidateSize(true);
+        });
+        resizeObserver.observe(mapContainerRef.current);
+      }
+    });
+
+    return () => {
+      destroyed = true;
+      for (const t of timeouts) clearTimeout(t);
+      resizeObserver?.disconnect();
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+        markerRef.current = null;
+        userMarkerRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [busNumber, to]);
+
+  // Update user marker when userLat/userLng props change (e.g., after map is created)
+  useEffect(() => {
+    if (!mapRef.current || userLat === undefined || userLng === undefined)
+      return;
+    const L = window.L;
+    if (!L) return;
+
+    if (userMarkerRef.current) {
+      userMarkerRef.current.setLatLng([userLat, userLng]);
+    } else {
+      const userIcon = L.divIcon({
+        className: "",
+        html: `<div style="width:14px;height:14px;border-radius:50%;background:#3b82f6;border:3px solid white;box-shadow:0 0 0 2px #3b82f6;"></div>`,
+        iconSize: [14, 14],
+        iconAnchor: [7, 7],
+      });
+      const userMarker = L.marker([userLat, userLng], { icon: userIcon }).addTo(
+        mapRef.current,
+      );
+      userMarker.bindPopup("<b>Your Location</b>");
+      userMarkerRef.current = userMarker;
+    }
+  }, [userLat, userLng]);
+
+  // Show geo error if no location was provided by parent
+  useEffect(() => {
+    if (userLat === undefined || userLng === undefined) {
+      if (!navigator.geolocation) {
+        setGeoError("Geolocation not supported.");
+      } else {
+        setGeoError("Location permission not granted.");
+      }
+    } else {
+      setGeoError(null);
+    }
+  }, [userLat, userLng]);
 
   const fetchGPS = useCallback(async () => {
     try {
@@ -104,19 +249,15 @@ const BusTracking: React.FC<BusTrackingProps> = ({
       if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
         setBusLat(lat);
         setBusLng(lng);
-        initLatRef.current = lat;
-        initLngRef.current = lng;
         setPollError(false);
-        if (markerRef.current && mapInstanceRef.current) {
-          leafletCall(markerRef.current, "setLatLng", [lat, lng]);
-          leafletCall(mapInstanceRef.current, "setView", [lat, lng], 16);
+        if (markerRef.current && mapRef.current) {
+          markerRef.current.setLatLng([lat, lng]);
+          mapRef.current.panTo([lat, lng]);
         }
       }
       setLastUpdated(new Date());
     } catch {
       setPollError(true);
-    } finally {
-      setIsLoading(false);
     }
   }, []);
 
@@ -128,100 +269,8 @@ const BusTracking: React.FC<BusTrackingProps> = ({
     };
   }, [fetchGPS]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: map is initialised once when loading ends
   useEffect(() => {
-    if (isLoading || !mapContainerRef.current) return;
-    let destroyed = false;
-    loadLeaflet()
-      .then(() => {
-        if (destroyed || !mapContainerRef.current) return;
-        const win = window as unknown as Record<string, unknown>;
-        const L = win.L as
-          | Record<string, (...a: unknown[]) => unknown>
-          | undefined;
-        if (!L || mapInstanceRef.current) return;
-
-        const lat = initLatRef.current;
-        const lng = initLngRef.current;
-        const map = L.map(mapContainerRef.current, {
-          center: [lat, lng],
-          zoom: 16,
-          zoomControl: true,
-        });
-
-        const tileLayerFn = L.tileLayer as (
-          url: string,
-          opts: object,
-        ) => unknown;
-        const tiles = tileLayerFn(
-          "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-          {
-            attribution:
-              '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-            maxZoom: 19,
-          },
-        );
-        leafletCall(tiles, "addTo", map);
-
-        const divIcon = L.divIcon as (opts: object) => unknown;
-        const busIcon = divIcon({
-          html: '<div style="font-size:32px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4))">\uD83D\uDE8C</div>',
-          className: "",
-          iconSize: [36, 36],
-          iconAnchor: [18, 18],
-        });
-
-        const markerFn = L.marker as (latlng: unknown, opts: object) => unknown;
-        const marker = markerFn([lat, lng], { icon: busIcon });
-        leafletCall(marker, "addTo", map);
-        leafletCall(
-          (marker as Record<string, (...a: unknown[]) => unknown>).bindPopup(
-            `<b>${busNumberRef.current}</b><br/>is going to ${toRef.current}`,
-          ),
-          "openPopup",
-        );
-
-        mapInstanceRef.current = map;
-        markerRef.current = marker;
-      })
-      .catch(() => {
-        /* CDN load failed */
-      });
-
-    return () => {
-      destroyed = true;
-      if (mapInstanceRef.current) {
-        leafletCall(mapInstanceRef.current, "remove");
-        mapInstanceRef.current = null;
-        markerRef.current = null;
-      }
-    };
-  }, [isLoading]);
-
-  useEffect(() => {
-    if (!markerRef.current || !mapInstanceRef.current) return;
-    leafletCall(markerRef.current, "setLatLng", [busLat, busLng]);
-    leafletCall(mapInstanceRef.current, "setView", [busLat, busLng], 16);
-  }, [busLat, busLng]);
-
-  useEffect(() => {
-    if (!navigator.geolocation) {
-      setGeoError("Geolocation not supported.");
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setUserLat(pos.coords.latitude);
-        setUserLng(pos.coords.longitude);
-        setGeoError(null);
-      },
-      () => setGeoError("Could not get your location."),
-      { timeout: 8000, enableHighAccuracy: true },
-    );
-  }, []);
-
-  useEffect(() => {
-    if (userLat === null || userLng === null) return;
+    if (userLat === undefined || userLng === undefined) return;
     const R = 6371;
     const dLat = ((busLat - userLat) * Math.PI) / 180;
     const dLng = ((busLng - userLng) * Math.PI) / 180;
@@ -425,9 +474,11 @@ const BusTracking: React.FC<BusTrackingProps> = ({
           </div>
         )}
 
+        {/* Plain div wrapper — NOT a motion div — so Leaflet measures real size */}
         <div
-          className="rounded-2xl overflow-hidden"
           style={{
+            borderRadius: "1rem",
+            overflow: "hidden",
             border: "2px solid oklch(0.80 0.06 220)",
             boxShadow: "0 8px 32px oklch(0.24 0.08 255 / 0.18)",
           }}
@@ -449,13 +500,13 @@ const BusTracking: React.FC<BusTrackingProps> = ({
               </div>
               <div>
                 <span className="text-xs font-body font-bold text-white block">
-                  Live Bus Location
+                  Live Bus Location — Bhubaneswar
                 </span>
                 <span
                   className="text-xs font-body"
                   style={{ color: "oklch(0.78 0.06 220)" }}
                 >
-                  Channel {THINGSPEAK_CHANNEL_ID} · auto-refreshing
+                  OpenStreetMap · auto-refreshing
                 </span>
               </div>
             </div>
@@ -473,39 +524,17 @@ const BusTracking: React.FC<BusTrackingProps> = ({
             </div>
           </div>
 
-          {isLoading ? (
-            <div
-              className="flex flex-col items-center justify-center gap-3"
-              style={{
-                height: 500,
-                width: "100%",
-                background: "oklch(0.93 0.03 220)",
-              }}
-              data-ocid="tracking.loading_state"
-            >
-              <RefreshCw
-                className="w-8 h-8 animate-spin"
-                style={{ color: "oklch(0.55 0.04 230)" }}
-              />
-              <p
-                className="text-xs font-body"
-                style={{ color: "oklch(0.55 0.04 230)" }}
-              >
-                Fetching GPS from ThingSpeak…
-              </p>
-            </div>
-          ) : (
-            <div
-              ref={mapContainerRef}
-              style={{
-                height: 500,
-                width: "100%",
-                display: "block",
-                position: "relative",
-                zIndex: 0,
-              }}
-            />
-          )}
+          {/* Map container: explicit inline styles for reliable Leaflet rendering */}
+          <div
+            ref={mapContainerRef}
+            style={{
+              height: "500px",
+              width: "100%",
+              display: "block",
+              position: "relative",
+              zIndex: 0,
+            }}
+          />
 
           <div
             className="px-4 py-2 flex items-center justify-between"

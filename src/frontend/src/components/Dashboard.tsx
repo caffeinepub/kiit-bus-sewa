@@ -17,9 +17,16 @@ interface RouteSelection {
 interface DashboardProps {
   userEmail: string;
   onLogout: () => void;
+  userLat?: number;
+  userLng?: number;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ userEmail, onLogout }) => {
+const Dashboard: React.FC<DashboardProps> = ({
+  userEmail,
+  onLogout,
+  userLat,
+  userLng,
+}) => {
   const [screen, setScreen] = useState<DashboardScreen>("route-select");
   const [routeSelection, setRouteSelection] = useState<RouteSelection | null>(
     null,
@@ -53,6 +60,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userEmail, onLogout }) => {
         fromLng={routeSelection.fromLng}
         userEmail={userEmail}
         onBack={handleBackToRoutes}
+        userLat={userLat}
+        userLng={userLng}
       />
     );
   }

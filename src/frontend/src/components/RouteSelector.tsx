@@ -76,7 +76,7 @@ const RouteSelector: React.FC<RouteSelectorProps> = ({
             />
           </div>
           <span className="font-display font-bold text-base text-white">
-            KIIT Bus Sewa
+            KIIT Bus
           </span>
         </div>
         <div className="flex items-center gap-3">
